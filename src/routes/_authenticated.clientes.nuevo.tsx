@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ const schema = z.object({
 
 function NewClientPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const [form, setForm] = useState({
     full_name: "",
@@ -67,6 +69,8 @@ function NewClientPage() {
       toast.error(error.message);
       return;
     }
+    // Invalida la query de clientes para refrescar la lista
+    await queryClient.invalidateQueries(["clients"]);
     toast.success("Cliente creado");
     navigate({ to: "/clientes/$id", params: { id: data.id } });
   };
