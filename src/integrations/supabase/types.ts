@@ -14,16 +14,264 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      client_interactions: {
+        Row: {
+          client_id: string
+          content: string
+          created_at: string
+          id: string
+          type: Database["public"]["Enums"]["interaction_type"]
+          user_id: string | null
+        }
+        Insert: {
+          client_id: string
+          content: string
+          created_at?: string
+          id?: string
+          type: Database["public"]["Enums"]["interaction_type"]
+          user_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          type?: Database["public"]["Enums"]["interaction_type"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_interactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          assigned_to: string | null
+          city: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          full_name: string
+          id: string
+          last_contact_at: string | null
+          notes: string | null
+          phone: string | null
+          priority: Database["public"]["Enums"]["priority_level"]
+          status: Database["public"]["Enums"]["client_status"]
+          updated_at: string
+          vehicle_interest: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          last_contact_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          priority?: Database["public"]["Enums"]["priority_level"]
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+          vehicle_interest?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          last_contact_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          priority?: Database["public"]["Enums"]["priority_level"]
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+          vehicle_interest?: string | null
+        }
+        Relationships: []
+      }
+      opportunities: {
+        Row: {
+          assigned_to: string | null
+          client_id: string
+          created_at: string
+          estimated_value: number | null
+          expected_close_date: string | null
+          id: string
+          stage: Database["public"]["Enums"]["opportunity_stage"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_id: string
+          created_at?: string
+          estimated_value?: number | null
+          expected_close_date?: string | null
+          id?: string
+          stage?: Database["public"]["Enums"]["opportunity_stage"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          client_id?: string
+          created_at?: string
+          estimated_value?: number | null
+          expected_close_date?: string | null
+          id?: string
+          stage?: Database["public"]["Enums"]["opportunity_stage"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunities_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          client_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["priority_level"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["priority_level"]
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "supervisor" | "asesor" | "soporte"
+      client_status:
+        | "nuevo"
+        | "en_seguimiento"
+        | "interesado"
+        | "negociacion"
+        | "cerrada"
+        | "postventa"
+      interaction_type: "llamada" | "email" | "whatsapp" | "nota" | "reunion"
+      opportunity_stage:
+        | "prospeccion"
+        | "contacto"
+        | "interesado"
+        | "negociacion"
+        | "cerrada_ganada"
+        | "cerrada_perdida"
+      priority_level: "baja" | "media" | "alta"
+      task_status: "pendiente" | "en_progreso" | "completada" | "cancelada"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +398,27 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "supervisor", "asesor", "soporte"],
+      client_status: [
+        "nuevo",
+        "en_seguimiento",
+        "interesado",
+        "negociacion",
+        "cerrada",
+        "postventa",
+      ],
+      interaction_type: ["llamada", "email", "whatsapp", "nota", "reunion"],
+      opportunity_stage: [
+        "prospeccion",
+        "contacto",
+        "interesado",
+        "negociacion",
+        "cerrada_ganada",
+        "cerrada_perdida",
+      ],
+      priority_level: ["baja", "media", "alta"],
+      task_status: ["pendiente", "en_progreso", "completada", "cancelada"],
+    },
   },
 } as const
