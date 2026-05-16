@@ -69,7 +69,6 @@ function NewClientPage() {
       toast.error(error.message);
       return;
     }
-    // Invalida la query de clientes para refrescar la lista
     await queryClient.invalidateQueries(["clients"]);
     toast.success("Cliente creado");
     navigate({ to: "/clientes/$id", params: { id: data.id } });
