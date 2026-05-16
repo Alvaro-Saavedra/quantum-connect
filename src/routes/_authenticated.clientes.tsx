@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,6 +121,8 @@ function ClientesPage() {
           </table>
         </div>
       </div>
+      {/* Renderiza rutas hijas como /clientes/nuevo */}
+      <Outlet />
     </div>
   );
 }
