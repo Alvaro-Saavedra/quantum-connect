@@ -139,7 +139,7 @@ async function handleChatbotQuestion(message: string): Promise<string> {
 
   // Detect which vehicle the user is talking about (basic keyword search)
   let contextoVehiculo = "Información general: Quantum Motors fabrica vehículos 100% eléctricos en Latinoamérica.";
-  
+
   const preguntaMinuscula = message.toLowerCase();
   if (preguntaMinuscula.includes("nexus")) {
     contextoVehiculo = JSON.stringify(catalogoQuantum.nexus, null, 2);
@@ -147,9 +147,9 @@ async function handleChatbotQuestion(message: string): Promise<string> {
     contextoVehiculo = JSON.stringify(catalogoQuantum.e4_montanero, null, 2);
   } else if (preguntaMinuscula.includes("camion") || preguntaMinuscula.includes("ion")) {
     contextoVehiculo = JSON.stringify(catalogoQuantum.camion_ion, null, 2);
-  } else if (preguntaMinuscula.includes("moto") || preguntaMinuscula.includes("motocicleta") || 
-             preguntaMinuscula.includes("street hunter") || preguntaMinuscula.includes("wanderer") ||
-             preguntaMinuscula.includes("ts ") || preguntaMinuscula.includes("tc ")) {
+  } else if (preguntaMinuscula.includes("moto") || preguntaMinuscula.includes("motocicleta") ||
+    preguntaMinuscula.includes("street hunter") || preguntaMinuscula.includes("wanderer") ||
+    preguntaMinuscula.includes("ts ") || preguntaMinuscula.includes("tc ")) {
     // Filter only motorcycle data
     const motocicletas = {
       ts_street_hunter_pro: catalogoQuantum.ts_street_hunter_pro,
@@ -164,7 +164,7 @@ async function handleChatbotQuestion(message: string): Promise<string> {
 
   // Get relevant FAQ entries for context
   const relevantFAQ = findRelevantFAQ(message);
-  const faqContext = relevantFAQ.length > 0 
+  const faqContext = relevantFAQ.length > 0
     ? `\n\nPREGUNTAS FRECUENTES RELACIONADAS:\n${relevantFAQ.map(faq => `P: ${faq.question}\nR: ${faq.answer}`).join('\n\n')}`
     : "";
 
@@ -210,25 +210,15 @@ export default {
         // Get the Supabase server client
         const supabase = createSupabaseServerClient();
 
-        // Get the user from the session token
-        // Expecting Authorization: Bearer <access_token> header
+        // Get the user from the session token (optional — allows public catalog access)
         const authHeader = request.headers.get("Authorization");
         let userId: string | null = null;
         if (authHeader?.startsWith("Bearer ")) {
           const token = authHeader.substring(7);
           const { data: { user }, error } = await supabase.auth.getUser(token);
-          if (error || !user) {
-            return new Response(JSON.stringify({ error: "Unauthorized" }), {
-              status: 401,
-              headers: { "Content-Type": "application/json" },
-            });
+          if (!error && user) {
+            userId = user.id;
           }
-          userId = user.id;
-        } else {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401,
-            headers: { "Content-Type": "application/json" },
-          });
         }
 
         // Parse request body
@@ -244,8 +234,8 @@ export default {
         // Get response from Gemini with enhanced context (both FAQ and catalog)
         const botResponse = await handleChatbotQuestion(message);
 
-        // Log the interaction as a client_interaction (type: nota) if clientId is provided
-        if (clientId) {
+        // Log the interaction as a client_interaction (type: nota) only if user is authenticated and clientId is provided
+        if (userId && clientId) {
           // Update last_contact_at
           await supabase
             .from("clients")
