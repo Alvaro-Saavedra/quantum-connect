@@ -201,7 +201,7 @@ async function selectBestAdvisor(
   let advisorProfiles: Array<{ id: string | null; full_name: string | null; city?: string | null }> = [];
   const { data: advisorProfilesData, error: advisorProfilesError } = await adminClient
     .from("profiles")
-    .select("id, full_name, city")
+    .select("id, full_name")
     .in("id", advisorIds);
 
   if (advisorProfilesError) {

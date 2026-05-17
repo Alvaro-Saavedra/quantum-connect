@@ -28,6 +28,7 @@ function UsuariosPage() {
   const [newPassword, setNewPassword] = useState("");
   const [newFullName, setNewFullName] = useState("");
   const [newRole, setNewRole] = useState("asesor");
+  const [newCity, setNewCity] = useState("Cochabamba");
   const [creating, setCreating] = useState(false);
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
 
@@ -48,6 +49,7 @@ function UsuariosPage() {
           password: newPassword,
           fullName: newFullName,
           role: newRole,
+          city: newCity,
         }),
         headers: { "Content-Type": "application/json" },
       });
@@ -60,6 +62,7 @@ function UsuariosPage() {
       setNewPassword("");
       setNewFullName("");
       setNewRole("asesor");
+      setNewCity("Cochabamba");
       setIsCreateUserModalOpen(false);
 
       qc.invalidateQueries({ queryKey: ["profiles"] });
@@ -297,6 +300,30 @@ function UsuariosPage() {
                       {label}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor="admin-create-user-city"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Ciudad (ubicación)
+                </label>
+                <select
+                  id="admin-create-user-city"
+                  name="admin-create-user-city"
+                  value={newCity}
+                  onChange={(e) => setNewCity(e.target.value)}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 rounded-md bg-secondary/50 border border-border text-sm outline-none focus:border-brand-primary"
+                >
+                  <option value="Cochabamba">Cochabamba</option>
+                  <option value="La Paz">La Paz</option>
+                  <option value="Santa Cruz">Santa Cruz</option>
+                  <option value="El Alto">El Alto</option>
+                  <option value="Yacuiba">Yacuiba</option>
+                  <option value="Oruro">Oruro</option>
                 </select>
               </div>
             </div>

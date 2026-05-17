@@ -56,10 +56,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { email, password, fullName, role } = await req.json();
+    const { email, password, fullName, role, city } = await req.json();
 
     const normalizedEmail = email?.toString().trim().toLowerCase();
     const normalizedFullName = fullName?.toString().trim();
+    const normalizedCity = city?.toString().trim();
     const allowedRoles = ["admin", "supervisor", "asesor", "soporte"];
 
     if (
@@ -107,6 +108,7 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: {
           full_name: normalizedFullName,
+          city: normalizedCity || null,
         },
       });
 
