@@ -1,3 +1,14 @@
+/**
+ * catalogo.tsx  —  RAMA: luci
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Cambios respecto al original:
+ *  1. Importa FormularioCotizacion y FormularioPerfil
+ *  2. Agrega estados `isCotizacionOpen` e `isPerfilOpen`
+ *  3. Los botones CTA de cada sección abren el Dialog correspondiente
+ *  4. Sin cambios en el diseño visual ni en la estructura existente
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import {
@@ -7,6 +18,8 @@ import {
 } from 'lucide-react'
 
 import { CatalogChatWidget } from '@/components/CatalogChatWidget'
+import { FormularioCotizacion } from '@/components/catalogo/FormularioCotizacion'
+import { FormularioPerfil } from '@/components/catalogo/FormularioPerfil'
 
 export const Route = createFileRoute('/catalogo')({
   component: CatalogoView,
@@ -77,6 +90,9 @@ const faqs = [
 
 function CatalogoView() {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  // ── NUEVO: estado para los dos formularios ──────────────────────────────────
+  const [isCotizacionOpen, setIsCotizacionOpen] = useState(false);
+  const [isPerfilOpen, setIsPerfilOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#0B1120] text-white font-sans selection:bg-primary/30">
@@ -177,6 +193,13 @@ function CatalogoView() {
 
                   <div className="pt-4 border-t border-white/5 flex items-center justify-between">
                     <span className="text-2xl font-bold text-primary">{v.price}</span>
+                    {/* ── NUEVO: botón de cotización desde la tarjeta ─────── */}
+                    <button
+                      onClick={() => setIsCotizacionOpen(true)}
+                      className="text-xs font-semibold text-primary/80 hover:text-primary flex items-center gap-1 transition-colors"
+                    >
+                      Cotizar <ChevronRight size={12} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -228,7 +251,11 @@ function CatalogoView() {
               </div>
             </div>
 
-            <button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all">
+            {/* ── MODIFICADO: onClick abre FormularioCotizacion ─────────────── */}
+            <button
+              onClick={() => setIsCotizacionOpen(true)}
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_25px_rgba(74,222,128,0.25)]"
+            >
               <Calculator size={18} />
               Comenzar Cotización <ChevronRight size={18} />
             </button>
@@ -259,13 +286,15 @@ function CatalogoView() {
                 ))}
               </ul>
 
-              <button className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all w-fit">
+              {/* ── MODIFICADO: onClick abre FormularioPerfil ─────────────────── */}
+              <button
+                onClick={() => setIsPerfilOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6 py-3 rounded-xl flex items-center justify-center gap-2 transition-all hover:shadow-[0_0_25px_rgba(74,222,128,0.25)] w-fit"
+              >
                 <FileText size={18} />
                 Completar Perfil <ChevronRight size={18} />
               </button>
             </div>
-
-
           </div>
         </section>
 
@@ -322,14 +351,25 @@ function CatalogoView() {
                 <MessageCircle size={18} />
                 Chat en Vivo
               </button>
-
             </div>
           </div>
         </section>
       </main>
 
-      {/* Chat Widget — powered by the real chatbot */}
+      {/* ── Widgets & Dialogs ─────────────────────────────────────────────────── */}
       <CatalogChatWidget open={isChatOpen} onClose={() => setIsChatOpen(false)} />
+
+      {/* NUEVO: Formulario 1 — Cotización */}
+      <FormularioCotizacion
+        open={isCotizacionOpen}
+        onClose={() => setIsCotizacionOpen(false)}
+      />
+
+      {/* NUEVO: Formulario 2 — Perfil */}
+      <FormularioPerfil
+        open={isPerfilOpen}
+        onClose={() => setIsPerfilOpen(false)}
+      />
     </div>
   )
 }
