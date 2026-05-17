@@ -11,7 +11,7 @@
  *  - Design tokens del proyecto: glass-card, primary, bg-[#0B1120], etc.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { useAuth } from '@/hooks/use-auth'
 import { supabase } from '@/integrations/supabase/client'
 import { catalogoQuantum } from '@/lib/datosCatalogo'
 import { cn } from '@/lib/utils'
@@ -107,7 +108,9 @@ interface FormularioCotizacionProps {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function FormularioCotizacion({ open, onClose }: FormularioCotizacionProps) {
+  const { user } = useAuth()
   const [submitted, setSubmitted] = useState(false)
+  const [userClient, setUserClient] = useState<{ phone: string | null; city: string | null } | null>(null)
 
   const form = useForm<CotizacionFormValues>({
     resolver: zodResolver(cotizacionSchema),
@@ -123,20 +126,77 @@ export function FormularioCotizacion({ open, onClose }: FormularioCotizacionProp
   const mensaje = form.watch('mensaje') ?? ''
   const isSubmitting = form.formState.isSubmitting
 
-  // ─── Submit ────────────────────────────────────────────────────────────────
-  const onSubmit = async (values: CotizacionFormValues) => {
-    try {
-      const { error } = await supabase.from('cotizaciones').insert({
-        vehiculo: values.vehiculo === 'sin_especificar' ? null : values.vehiculo,
-        metodo_pago: values.metodoPago,
-        plan_meses:
-          values.metodoPago === 'credito' && values.planMeses && values.planMeses !== 'otro'
-            ? parseInt(values.planMeses, 10)
-            : null,
-        mensaje: values.mensaje?.trim() || null,
-      })
+  useEffect(() => {
+    if (!open || !user?.id) return
+
+    const fetchClient = async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('phone, city')
+        .eq('auth_user_id', user.id)
+        .single()
 
       if (error) {
+        console.warn('[Cotizacion] No se pudo obtener el cliente del usuario:', error)
+        return
+      }
+
+      setUserClient({
+        phone: data?.phone ?? null,
+        city: data?.city ?? null,
+      })
+    }
+
+    void fetchClient()
+  }, [open, user?.id])
+
+  // ─── Submit ────────────────────────────────────────────────────────────────
+  const onSubmit = async (values: CotizacionFormValues) => {
+    if (!user) {
+      toast.error('Debes iniciar sesión para enviar tu cotización.')
+      return
+    }
+
+    const userName = (user.user_metadata as any)?.full_name ?? user.email ?? null
+    const userPhone = (user.user_metadata as any)?.phone ?? userClient?.phone ?? null
+    const userCity = (user.user_metadata as any)?.city ?? userClient?.city ?? null
+
+    const payload = {
+      vehiculo: values.vehiculo === 'sin_especificar' ? null : values.vehiculo,
+      metodo_pago: values.metodoPago,
+      plan_meses:
+        values.metodoPago === 'credito' && values.planMeses && values.planMeses !== 'otro'
+          ? parseInt(values.planMeses, 10)
+          : null,
+      mensaje: values.mensaje?.trim() || null,
+      user_id: user.id,
+      user_nombre: userName,
+      user_email: user.email,
+      user_telefono: userPhone,
+      user_ciudad: userCity,
+    } as any
+
+    const isSchemaColumnError = (message?: string | null) =>
+      Boolean(message?.match(/column \"(user_id|user_nombre|user_email|user_telefono|user_ciudad)\" does not exist/i))
+
+    try {
+      let { error } = await supabase.from('cotizaciones').insert(payload)
+
+      if (error && isSchemaColumnError(error.message)) {
+        const fallbackPayload = {
+          vehiculo: payload.vehiculo,
+          metodo_pago: payload.metodo_pago,
+          plan_meses: payload.plan_meses,
+          mensaje: payload.mensaje,
+        }
+
+        const fallbackResult = await supabase.from('cotizaciones').insert(fallbackPayload)
+        if (fallbackResult.error) {
+          console.error('[Cotizacion] Supabase fallback insert error:', fallbackResult.error)
+          toast.error(`No se pudo enviar la cotización: ${fallbackResult.error.message || 'error desconocido'}`)
+          return
+        }
+      } else if (error) {
         console.error('[Cotizacion] Supabase insert error:', error)
         toast.error(`No se pudo enviar la cotización: ${error.message || 'error desconocido'}`)
         return

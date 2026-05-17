@@ -12,6 +12,7 @@
  */
 
 import { useState } from 'react'
+import { useAuth } from '@/hooks/use-auth'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -147,6 +148,7 @@ interface FormularioPerfilProps {
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export function FormularioPerfil({ open, onClose }: FormularioPerfilProps) {
+  const { user } = useAuth()
   const [step, setStep] = useState<1 | 2>(1)
   const [submitted, setSubmitted] = useState(false)
 
@@ -176,20 +178,53 @@ export function FormularioPerfil({ open, onClose }: FormularioPerfilProps) {
 
   // ─── Submit final ──────────────────────────────────────────────────────────
   const onSubmit = async (values: PerfilFormValues) => {
-    try {
-      const { error } = await supabase.from('perfiles_usuario').insert({
-        edad: values.edad,
-        sexo: values.sexo,
-        miembros_familia: values.miembrosFamilia,
-        ocupacion: values.ocupacion,
-        sector_laboral: values.sectorLaboral,
-        rango_ingresos: values.rangoIngresos,
-        tiene_vehiculo: values.tieneVehiculo,
-        uso_principal: values.usoPrincipal,
-        distancia_diaria: values.distanciaDiaria,
-      })
+    if (!user) {
+      toast.error('Debes iniciar sesión para guardar tu perfil.')
+      return
+    }
 
-      if (error) {
+    const userName = (user.user_metadata as any)?.full_name ?? user.email ?? null
+
+    const payload = {
+      edad: values.edad,
+      sexo: values.sexo,
+      miembros_familia: values.miembrosFamilia,
+      ocupacion: values.ocupacion,
+      sector_laboral: values.sectorLaboral,
+      rango_ingresos: values.rangoIngresos,
+      tiene_vehiculo: values.tieneVehiculo,
+      uso_principal: values.usoPrincipal,
+      distancia_diaria: values.distanciaDiaria,
+      user_id: user.id,
+      user_nombre: userName,
+    } as any
+
+    const isSchemaColumnError = (message?: string | null) =>
+      Boolean(message?.match(/column \"(user_id|user_nombre)\" does not exist/i))
+
+    try {
+      let { error } = await supabase.from('perfiles_usuario').insert(payload)
+
+      if (error && isSchemaColumnError(error.message)) {
+        const fallbackPayload = {
+          edad: payload.edad,
+          sexo: payload.sexo,
+          miembros_familia: payload.miembros_familia,
+          ocupacion: payload.ocupacion,
+          sector_laboral: payload.sector_laboral,
+          rango_ingresos: payload.rango_ingresos,
+          tiene_vehiculo: payload.tiene_vehiculo,
+          uso_principal: payload.uso_principal,
+          distancia_diaria: payload.distancia_diaria,
+        }
+
+        const fallbackResult = await supabase.from('perfiles_usuario').insert(fallbackPayload)
+        if (fallbackResult.error) {
+          console.error('[Perfil] Supabase fallback insert error:', fallbackResult.error)
+          toast.error(`No se pudo guardar el perfil: ${fallbackResult.error.message || 'error desconocido'}`)
+          return
+        }
+      } else if (error) {
         console.error('[Perfil] Supabase insert error:', error)
         toast.error(`No se pudo guardar el perfil: ${error.message || 'error desconocido'}`)
         return

@@ -9,7 +9,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, useRef, useEffect } from 'react'
 import {
   Zap, MessageCircle, Phone, Battery, Timer, Users,
@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+import { useAuth } from '@/hooks/use-auth'
+import { Button } from '@/components/ui/button'
 import { CatalogChatWidget } from '@/components/CatalogChatWidget'
 import { FormularioCotizacion } from '@/components/catalogo/FormularioCotizacion'
 import { FormularioPerfil } from '@/components/catalogo/FormularioPerfil'
@@ -153,6 +155,8 @@ const faqs = [
 ];
 
 function CatalogoView() {
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
   const [isChatOpen, setIsChatOpen] = useState(false);
   // ── NUEVO: estado para los dos formularios ──────────────────────────────────
   const [isCotizacionOpen, setIsCotizacionOpen] = useState(false);
@@ -232,13 +236,28 @@ function CatalogoView() {
               CRM
             </span>
           </div>
-          <button
-            onClick={() => setIsChatOpen(true)}
-            className="flex items-center gap-2 bg-white text-slate-900 px-4 py-2 rounded-full font-medium text-sm hover:bg-slate-100 transition-colors shadow-sm"
-          >
-            <MessageCircle size={16} />
-            Asistente Virtual
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className="flex items-center gap-2 bg-white text-slate-900 px-4 py-2 rounded-full font-medium text-sm hover:bg-slate-100 transition-colors shadow-sm"
+            >
+              <MessageCircle size={16} />
+              Asistente Virtual
+            </button>
+
+            {user ? (
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  await signOut()
+                  navigate({ to: '/login' })
+                }}
+                className="text-white border border-white/10 hover:bg-white/10"
+              >
+                Cerrar sesión
+              </Button>
+            ) : null}
+          </div>
 
         </div>
       </header>
