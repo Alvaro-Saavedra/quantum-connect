@@ -1,10 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import {
-  Zap, MessageCircle, Phone, X, Send, Battery, Timer, Users,
+  Zap, MessageCircle, Phone, Battery, Timer, Users,
   ChevronRight, ChevronLeft, CheckCircle2, Calculator, FileText,
   DollarSign, Navigation
 } from 'lucide-react'
+
+import { CatalogChatWidget } from '@/components/CatalogChatWidget'
 
 export const Route = createFileRoute('/catalogo')({
   component: CatalogoView,
@@ -101,6 +103,7 @@ function CatalogoView() {
             <MessageCircle size={16} />
             Asistente Virtual
           </button>
+
         </div>
       </header>
 
@@ -274,7 +277,10 @@ function CatalogoView() {
                 <h3 className="text-2xl font-bold text-white mb-2">Preguntas Frecuentes</h3>
                 <p className="text-slate-400 text-sm">Encuentra respuestas a las dudas más comunes</p>
               </div>
-              <button className="hidden md:flex items-center gap-2 bg-primary/20 text-primary hover:bg-primary/30 px-4 py-2 rounded-xl font-medium text-sm transition-colors border border-primary/20 mt-4 md:mt-0">
+              <button
+                onClick={() => setIsChatOpen(true)}
+                className="hidden md:flex items-center gap-2 bg-primary/20 text-primary hover:bg-primary/30 px-4 py-2 rounded-xl font-medium text-sm transition-colors border border-primary/20 mt-4 md:mt-0"
+              >
                 <MessageCircle size={16} />
                 Más Preguntas
               </button>
@@ -316,75 +322,14 @@ function CatalogoView() {
                 <MessageCircle size={18} />
                 Chat en Vivo
               </button>
+
             </div>
           </div>
         </section>
       </main>
 
-      {/* Chat Widget */}
-      {isChatOpen && (
-        <div className="fixed bottom-6 right-6 w-80 sm:w-96 bg-slate-900 border border-primary/30 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden animate-scale-in">
-          {/* Header */}
-          <div className="bg-primary p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-2 rounded-full">
-                <MessageCircle size={20} className="text-white" />
-              </div>
-              <div>
-                <h4 className="font-bold text-white text-sm">Asistente Quantum</h4>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-green-300 animate-pulse"></div>
-                  <span className="text-[10px] text-primary-foreground/90">En línea</span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setIsChatOpen(false)}
-              className="text-white/80 hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Messages Area */}
-          <div className="p-4 h-80 overflow-y-auto bg-slate-950 flex flex-col gap-4">
-            <div className="flex gap-2">
-              <div className="bg-primary/20 p-1.5 rounded-full h-8 w-8 flex items-center justify-center shrink-0 border border-primary/30">
-                <MessageCircle size={14} className="text-primary" />
-              </div>
-              <div className="bg-slate-800 rounded-2xl rounded-tl-sm p-3 border border-white/5 text-sm text-slate-200">
-                <p className="mb-3">¡Hola! Soy el asistente virtual de Quantum Motors. ¿En qué puedo ayudarte?</p>
-                <div className="flex flex-wrap gap-2">
-                  <button className="bg-slate-900 border border-primary/40 text-primary text-xs px-3 py-1.5 rounded-full hover:bg-primary/10 transition-colors">
-                    Ver catálogo
-                  </button>
-                  <button className="bg-slate-900 border border-primary/40 text-primary text-xs px-3 py-1.5 rounded-full hover:bg-primary/10 transition-colors">
-                    Agendar test drive
-                  </button>
-                  <button className="bg-slate-900 border border-primary/40 text-primary text-xs px-3 py-1.5 rounded-full hover:bg-primary/10 transition-colors">
-                    Financiamiento
-                  </button>
-                  <button className="bg-slate-900 border border-primary/40 text-primary text-xs px-3 py-1.5 rounded-full hover:bg-primary/10 transition-colors">
-                    Garantía
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Input Area */}
-          <div className="p-3 bg-slate-900 border-t border-white/5 flex gap-2 items-center">
-            <input
-              type="text"
-              placeholder="Escribe tu pregunta..."
-              className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-colors"
-            />
-            <button className="bg-primary p-2.5 rounded-xl text-primary-foreground hover:bg-primary/90 transition-colors">
-              <Send size={18} />
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Chat Widget — powered by the real chatbot */}
+      <CatalogChatWidget open={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </div>
   )
 }
