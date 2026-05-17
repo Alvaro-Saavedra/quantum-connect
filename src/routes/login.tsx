@@ -1,7 +1,6 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,7 +64,7 @@ function LoginPage() {
         return;
       }
 
-      const roles = (data ?? []).map((item) => item.role as AppRole);
+      const roles = (data ?? []).map((item) => item.role);
 
       if (roles.includes("cliente")) {
         navigate({ to: CATALOG_URL });
@@ -88,9 +87,7 @@ function LoginPage() {
   };
 
   const toggleMode = () => {
-    setMode((currentMode) =>
-      currentMode === "login" ? "register" : "login",
-    );
+    setMode((currentMode) => (currentMode === "login" ? "register" : "login"));
     resetForm();
   };
 
@@ -122,7 +119,7 @@ function LoginPage() {
 
     if (rolesError) throw rolesError;
 
-    const roles = (rolesData ?? []).map((item) => item.role as AppRole);
+    const roles = (rolesData ?? []).map((item) => item.role);
 
     toast.success("Bienvenido de vuelta");
 
@@ -151,25 +148,37 @@ function LoginPage() {
 
     const normalizedVehicleInterest = vehicleInterest.trim();
 
-    const { data, error } = await supabase.functions.invoke(
-      "self-register-client",
-      {
-        body: {
-          full_name: fullName,
-          phone,
-          email,
-          password,
-          city: city || null,
-          vehicle_interest: normalizedVehicleInterest || null,
-        },
-      },
-    );
+    const { data, error } = await supabase.functions.invoke("self-register-client", {
+      body: JSON.stringify({
+        full_name: fullName,
+        phone,
+        email,
+        password,
+        city: city || null,
+        vehicle_interest: normalizedVehicleInterest || null,
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
 
-    if (error) throw error;
+    if (error) {
+      let functionMessage = error.message;
+
+      if (data?.error) {
+        functionMessage = data.error;
+        if (data.detail) {
+          functionMessage += `: ${data.detail}`;
+        }
+      }
+
+      console.error("self-register-client invoke error", error, data);
+      throw new Error(functionMessage || "Error al registrar el cliente");
+    }
 
     if (data?.error) {
       throw new Error(data.error);
     }
+
+    const assignedAdvisorName = data?.assignedAdvisor?.full_name;
 
     const { error: loginError } = await supabase.auth.signInWithPassword({
       email,
@@ -180,11 +189,15 @@ function LoginPage() {
 
     toast.success("Registro completado correctamente");
 
+    if (assignedAdvisorName) {
+      toast.success(`Asesor asignado: ${assignedAdvisorName}`);
+    } else {
+      toast.success("Se asignará un asesor pronto");
+    }
+
     if (normalizedVehicleInterest) {
-      window.location.assign(
-        `${VEHICLE_INTEREST_URL}&vehiculo=${encodeURIComponent(
-          normalizedVehicleInterest,
-        )}`,
+      globalThis.location.assign(
+        `${VEHICLE_INTEREST_URL}&vehiculo=${encodeURIComponent(normalizedVehicleInterest)}`,
       );
       return;
     }
@@ -192,7 +205,7 @@ function LoginPage() {
     navigate({ to: CATALOG_URL });
   };
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
@@ -203,26 +216,19 @@ function LoginPage() {
         await submitRegister();
       }
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Error de autenticación",
-      );
+      toast.error(err instanceof Error ? err.message : "Error de autenticación");
     } finally {
       setLoading(false);
     }
   };
 
-  const googleSignIn = async () => {
-    setLoading(true);
+  let submitButtonLabel = "Registrarme como cliente";
 
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-
-    if (result.error) {
-      toast.error("No se pudo iniciar sesión con Google");
-      setLoading(false);
-    }
-  };
+  if (loading) {
+    submitButtonLabel = "Procesando…";
+  } else if (mode === "login") {
+    submitButtonLabel = "Iniciar sesión";
+  }
 
   return (
     <div className="min-h-screen bg-canvas text-foreground flex items-center justify-center px-4 relative overflow-hidden">
@@ -289,9 +295,7 @@ function LoginPage() {
               </div>
 
               <div>
-                <Label htmlFor="vehicleInterest">
-                  Vehículo de interés opcional
-                </Label>
+                <Label htmlFor="vehicleInterest">Vehículo de interés opcional</Label>
                 <Input
                   id="vehicleInterest"
                   value={vehicleInterest}
@@ -300,27 +304,21 @@ function LoginPage() {
                   className="mt-1 bg-secondary/50"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Si indicas un vehículo, te enviaremos a una página especial
-                  para continuar tu solicitud.
+                  Si indicas un vehículo, te enviaremos a una página especial para continuar tu
+                  solicitud.
                 </p>
               </div>
             </>
           )}
 
           <div>
-            <Label htmlFor="email">
-              {mode === "login" ? "Correo" : "Correo *"}
-            </Label>
+            <Label htmlFor="email">{mode === "login" ? "Correo" : "Correo *"}</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder={
-                mode === "login"
-                  ? "tu@quantummotors.com"
-                  : "tu-correo@gmail.com"
-              }
+              placeholder={mode === "login" ? "tu@quantummotors.com" : "tu-correo@gmail.com"}
               className="mt-1 bg-secondary/50"
               required
             />
@@ -345,11 +343,7 @@ function LoginPage() {
             disabled={loading}
             className="w-full bg-brand-primary text-canvas hover:bg-brand-primary/90"
           >
-            {loading
-              ? "Procesando…"
-              : mode === "login"
-                ? "Iniciar sesión"
-                : "Registrarme como cliente"}
+            {submitButtonLabel}
           </Button>
         </form>
 
