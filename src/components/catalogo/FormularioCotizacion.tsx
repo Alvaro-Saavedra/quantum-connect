@@ -224,7 +224,7 @@ export function FormularioCotizacion({ open, onClose }: FormularioCotizacionProp
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent
         className={cn(
-          'max-w-lg w-full border-white/10 p-0 overflow-hidden',
+          'max-w-lg w-full border-white/10 p-0 overflow-hidden [&>button.absolute]:hidden',
           'bg-[#0d1526] shadow-[0_0_60px_rgba(74,222,128,0.08)]',
         )}
       >
