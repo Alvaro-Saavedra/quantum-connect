@@ -27,24 +27,31 @@ function PipelinePage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full min-w-0">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Pipeline comercial</h1>
         <p className="text-sm text-muted-foreground mt-1">Vista kanban del estado de cada cliente</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="flex overflow-x-auto pb-6 gap-4 snap-x snap-mandatory hide-scrollbar w-full min-w-0">
+        <style>{`
+          .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+          .hide-scrollbar::-webkit-scrollbar { display: none; }
+          .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        `}</style>
         {COLUMNS.map((col) => {
           const items = (clients ?? []).filter((c) => c.status === col.key);
           return (
-            <div key={col.key} className="glass-card rounded-xl p-3 min-h-[300px]">
-              <div className="flex items-center justify-between mb-3 px-2">
+            <div key={col.key} className="glass-card rounded-xl p-3 min-w-[280px] w-[280px] shrink-0 snap-start flex flex-col max-h-[calc(100vh-220px)] border border-border/50">
+              <div className="flex items-center justify-between mb-3 px-2 shrink-0">
                 <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${statusBadgeClass(col.key)}`}>
                   {col.label}
                 </span>
                 <span className="text-xs text-muted-foreground">{items.length}</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 overflow-y-auto flex-1 pr-1 custom-scrollbar">
                 {items.map((c) => (
                   <Link
                     key={c.id}

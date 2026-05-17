@@ -235,26 +235,27 @@ function CatalogoView() {
 
       {/* Navbar */}
       <header className="sticky top-0 z-40 w-full bg-[#0B1120]/80 backdrop-blur-md border-b border-white/5">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0 min-w-0">
+            <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20 shrink-0 hidden sm:block">
               <Zap size={24} />
             </div>
-            <div>
-              <h1 className="text-xl font-bold leading-tight">Quantum Motors</h1>
-              <p className="text-xs text-slate-400">Movilidad Eléctrica del Futuro</p>
+            <div className="truncate">
+              <h1 className="text-base sm:text-xl font-bold leading-tight truncate">Quantum Motors</h1>
+              <p className="text-[10px] sm:text-xs text-slate-400 truncate hidden sm:block">Movilidad Eléctrica del Futuro</p>
             </div>
-            <span className="hidden md:inline-flex ml-4 bg-primary px-2 py-0.5 rounded text-[10px] font-bold text-primary-foreground uppercase tracking-wider">
+            <span className="hidden md:inline-flex ml-4 bg-primary px-2 py-0.5 rounded text-[10px] font-bold text-primary-foreground uppercase tracking-wider shrink-0">
               CRM
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <button
               onClick={() => setIsChatOpen(true)}
-              className="flex items-center gap-2 bg-white text-slate-900 px-4 py-2 rounded-full font-medium text-sm hover:bg-slate-100 transition-colors shadow-sm"
+              className="flex items-center gap-2 bg-white text-slate-900 px-3 sm:px-4 py-2 rounded-full font-medium text-xs sm:text-sm hover:bg-slate-100 transition-colors shadow-sm h-9 sm:h-10"
             >
-              <MessageCircle size={16} />
-              Asistente Virtual
+              <MessageCircle size={16} className="shrink-0" />
+              <span className="hidden sm:inline">Asistente Virtual</span>
+              <span className="sm:hidden">Chat</span>
             </button>
 
             {user ? (
@@ -264,13 +265,13 @@ function CatalogoView() {
                   await signOut()
                   navigate({ to: '/login' })
                 }}
-                className="text-white border border-white/10 hover:bg-white/10"
+                className="text-white border border-white/10 hover:bg-white/10 px-3 sm:px-4 text-xs sm:text-sm h-9 sm:h-10"
               >
-                Cerrar sesión
+                <span className="hidden sm:inline">Cerrar sesión</span>
+                <span className="sm:hidden">Salir</span>
               </Button>
             ) : null}
           </div>
-
         </div>
       </header>
 
