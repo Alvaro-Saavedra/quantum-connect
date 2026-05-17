@@ -3,7 +3,7 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { createClient } from "@supabase/supabase-js";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+//import { GoogleGenerativeAI } from "@google/generative-ai";
 import { quantumFAQ } from "./lib/quantumFAQ";
 import { catalogoQuantum } from "./lib/datosCatalogo";
 
@@ -139,7 +139,7 @@ async function handleChatbotQuestion(message: string): Promise<string> {
 
   // Detect which vehicle the user is talking about (basic keyword search)
   let contextoVehiculo = "Información general: Quantum Motors fabrica vehículos 100% eléctricos en Latinoamérica.";
-  
+
   const preguntaMinuscula = message.toLowerCase();
   if (preguntaMinuscula.includes("nexus")) {
     contextoVehiculo = JSON.stringify(catalogoQuantum.nexus, null, 2);
@@ -147,9 +147,9 @@ async function handleChatbotQuestion(message: string): Promise<string> {
     contextoVehiculo = JSON.stringify(catalogoQuantum.e4_montanero, null, 2);
   } else if (preguntaMinuscula.includes("camion") || preguntaMinuscula.includes("ion")) {
     contextoVehiculo = JSON.stringify(catalogoQuantum.camion_ion, null, 2);
-  } else if (preguntaMinuscula.includes("moto") || preguntaMinuscula.includes("motocicleta") || 
-             preguntaMinuscula.includes("street hunter") || preguntaMinuscula.includes("wanderer") ||
-             preguntaMinuscula.includes("ts ") || preguntaMinuscula.includes("tc ")) {
+  } else if (preguntaMinuscula.includes("moto") || preguntaMinuscula.includes("motocicleta") ||
+    preguntaMinuscula.includes("street hunter") || preguntaMinuscula.includes("wanderer") ||
+    preguntaMinuscula.includes("ts ") || preguntaMinuscula.includes("tc ")) {
     // Filter only motorcycle data
     const motocicletas = {
       ts_street_hunter_pro: catalogoQuantum.ts_street_hunter_pro,
@@ -164,7 +164,7 @@ async function handleChatbotQuestion(message: string): Promise<string> {
 
   // Get relevant FAQ entries for context
   const relevantFAQ = findRelevantFAQ(message);
-  const faqContext = relevantFAQ.length > 0 
+  const faqContext = relevantFAQ.length > 0
     ? `\n\nPREGUNTAS FRECUENTES RELACIONADAS:\n${relevantFAQ.map(faq => `P: ${faq.question}\nR: ${faq.answer}`).join('\n\n')}`
     : "";
 
