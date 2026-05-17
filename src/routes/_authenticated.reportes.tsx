@@ -116,11 +116,11 @@ function ReportesPage() {
             </Pie>
             <Tooltip
               contentStyle={{
-                background: "#fff", // Fondo claro
-                border: "1px solid #e5e7eb", // Borde gris claro
+                background: "#fff",
+                border: "1px solid #e5e7eb",
                 borderRadius: "8px",
                 fontSize: "12px",
-                color: "#22223b", // Texto oscuro
+                color: "#22223b",
               }}
             />
             <Legend
