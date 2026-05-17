@@ -27,6 +27,7 @@ export const roleLabels: Record<string, string> = {
   supervisor: "Supervisor",
   asesor: "Asesor",
   soporte: "Soporte",
+  cliente: "Cliente",
 };
 
 export function statusBadgeClass(status: string): string {
