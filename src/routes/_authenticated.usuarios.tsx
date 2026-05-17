@@ -74,21 +74,18 @@ function UsuariosPage() {
   const { data: profiles } = useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from<ProfileRow>("profiles")
-        .select("*")
-        .order("created_at");
+      const { data, error } = await supabase.from("profiles").select("*").order("created_at");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as ProfileRow[];
     },
   });
 
   const { data: roles } = useQuery({
     queryKey: ["roles"],
     queryFn: async () => {
-      const { data, error } = await supabase.from<RoleRow>("user_roles").select("user_id, role");
+      const { data, error } = await supabase.from("user_roles").select("user_id, role");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as RoleRow[];
     },
   });
 

@@ -5,9 +5,18 @@ type RegisterClientPayload = {
   phone: string;
   email: string;
   password: string;
-  city?: string | null;
+  city: string;
   vehicle_interest?: string | null;
 };
+
+const allowedCities = [
+  "Cochabamba",
+  "La Paz",
+  "Santa Cruz",
+  "El Alto",
+  "Yacuiba",
+  "Oruro",
+] as const;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +54,10 @@ function validatePayload(payload: RegisterClientPayload): string | null {
 
   if (!payload.password || payload.password.length < 6) {
     return "La contraseña debe tener al menos 6 caracteres";
+  }
+
+  if (!payload.city || !allowedCities.includes(payload.city as typeof allowedCities[number])) {
+    return "La ciudad es obligatoria y debe ser una de las opciones válidas";
   }
 
   return null;
@@ -117,7 +130,7 @@ function countAdvisorClients(
 }
 
 function applyAdvisorProfiles(
-  advisorProfiles: Array<{ id: string | null; full_name: string | null; city: string | null } | null> | null | undefined,
+  advisorProfiles: Array<{ id: string | null; full_name: string | null; city?: string | null } | null> | null | undefined,
   advisorStats: Map<string, AdvisorStats>,
   normalizedCity: string | null,
 ) {
@@ -185,7 +198,7 @@ async function selectBestAdvisor(
   const advisorStats = createAdvisorStats(advisorIds);
   countAdvisorClients(clients, advisorStats);
 
-  let advisorProfiles: Array<{ id: string | null; full_name: string | null; city: string | null }> = [];
+  let advisorProfiles: Array<{ id: string | null; full_name: string | null; city?: string | null }> = [];
   const { data: advisorProfilesData, error: advisorProfilesError } = await adminClient
     .from("profiles")
     .select("id, full_name, city")
@@ -196,6 +209,38 @@ async function selectBestAdvisor(
   } else {
     advisorProfiles = advisorProfilesData ?? [];
   }
+
+  const { data: advisorAuthUsers, error: advisorAuthUsersError } = await adminClient
+    .from("auth.users")
+    .select("id, user_metadata")
+    .in("id", advisorIds);
+
+  if (advisorAuthUsersError) {
+    console.error("Error obteniendo usuarios auth de asesores:", advisorAuthUsersError);
+  }
+
+  const advisorAuthUsersById = new Map(
+    (advisorAuthUsers ?? []).map((user) => [user.id, user] as const),
+  );
+
+  advisorProfiles = advisorIds.map((advisorId) => {
+    const profile = advisorProfiles.find((item) => item?.id === advisorId) ?? null;
+    const authUser = advisorAuthUsersById.get(advisorId);
+    const authCity = authUser?.user_metadata?.city;
+    const authFullName = authUser?.user_metadata?.full_name;
+
+    return {
+      id: advisorId,
+      full_name:
+        profile?.full_name?.trim() ||
+        (typeof authFullName === "string" ? authFullName.trim() : null) ||
+        null,
+      city:
+        profile?.city?.trim() ||
+        (typeof authCity === "string" ? authCity.trim() : null) ||
+        null,
+    };
+  });
 
   const normalizedCity = clientCity?.trim().toLowerCase() || null;
   applyAdvisorProfiles(advisorProfiles, advisorStats, normalizedCity);
@@ -258,7 +303,7 @@ Deno.serve(async (req) => {
     const phone = payload.phone.trim();
     const email = payload.email.trim().toLowerCase();
     const vehicleInterest = normalizeOptionalText(payload.vehicle_interest);
-    const city = normalizeOptionalText(payload.city);
+    const city = payload.city.trim();
 
     const { data: existingClient } = await adminClient
       .from("clients")
@@ -267,6 +312,30 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existingClient) {
+      return jsonResponse(
+        { error: "Ya existe un cliente registrado con ese correo" },
+        409,
+      );
+    }
+
+    const { data: existingAuthUsers, error: existingAuthUsersError } =
+      await adminClient.auth.admin.listUsers({
+        query: email,
+        perPage: 1,
+      });
+
+    if (existingAuthUsersError) {
+      return jsonResponse(
+        { error: existingAuthUsersError.message },
+        400,
+      );
+    }
+
+    if (
+      (existingAuthUsers?.users ?? []).some(
+        (user) => user.email?.toLowerCase() === email,
+      )
+    ) {
       return jsonResponse(
         { error: "Ya existe un cliente registrado con ese correo" },
         409,

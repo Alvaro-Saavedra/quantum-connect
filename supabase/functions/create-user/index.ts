@@ -58,9 +58,16 @@ Deno.serve(async (req) => {
 
     const { email, password, fullName, role } = await req.json();
 
+    const normalizedEmail = email?.toString().trim().toLowerCase();
+    const normalizedFullName = fullName?.toString().trim();
     const allowedRoles = ["admin", "supervisor", "asesor", "soporte"];
 
-    if (!email || !password || !fullName || !allowedRoles.includes(role)) {
+    if (
+      !normalizedEmail ||
+      !password ||
+      !normalizedFullName ||
+      !allowedRoles.includes(role)
+    ) {
       return new Response(
         JSON.stringify({ error: "Datos inválidos" }),
         { status: 400, headers: corsHeaders },
@@ -69,13 +76,37 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    const { data: existingUsers, error: existingUsersError } =
+      await adminClient.auth.admin.listUsers({
+        query: normalizedEmail,
+        perPage: 1,
+      });
+
+    if (existingUsersError) {
+      return new Response(
+        JSON.stringify({ error: existingUsersError.message }),
+        { status: 400, headers: corsHeaders },
+      );
+    }
+
+    if (
+      (existingUsers?.users ?? []).some(
+        (user) => user.email?.toLowerCase() === normalizedEmail,
+      )
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Ya existe un usuario con ese correo" }),
+        { status: 409, headers: corsHeaders },
+      );
+    }
+
     const { data: created, error: createError } =
       await adminClient.auth.admin.createUser({
-        email,
+        email: normalizedEmail,
         password,
         email_confirm: true,
         user_metadata: {
-          full_name: fullName,
+          full_name: normalizedFullName,
         },
       });
 

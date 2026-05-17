@@ -20,6 +20,15 @@ const CATALOG_URL = "/catalogo";
 
 const VEHICLE_INTEREST_URL = "/catalogo?interes=vehiculo";
 
+const validCities = [
+  "Cochabamba",
+  "La Paz",
+  "Santa Cruz",
+  "El Alto",
+  "Yacuiba",
+  "Oruro",
+] as const;
+
 const loginSchema = z.object({
   email: z.string().email("Email inválido").max(255),
   password: z.string().min(6, "Mínimo 6 caracteres").max(100),
@@ -30,7 +39,9 @@ const registerSchema = z.object({
   phone: z.string().min(4, "Teléfono requerido").max(30),
   email: z.string().email("Email inválido").max(255),
   password: z.string().min(6, "Mínimo 6 caracteres").max(100),
-  city: z.string().max(80).optional(),
+  city: z.enum(validCities, {
+    errorMap: () => ({ message: "Selecciona una ciudad válida" }),
+  }),
   vehicleInterest: z.string().max(120).optional(),
 });
 
@@ -187,13 +198,11 @@ function LoginPage() {
 
     if (loginError) throw loginError;
 
-    toast.success("Registro completado correctamente");
+    const advisorMessage = assignedAdvisorName
+      ? `Asesor asignado: ${assignedAdvisorName}`
+      : "Se asignará un asesor pronto";
 
-    if (assignedAdvisorName) {
-      toast.success(`Asesor asignado: ${assignedAdvisorName}`);
-    } else {
-      toast.success("Se asignará un asesor pronto");
-    }
+    toast.success(`Registro completado correctamente. ${advisorMessage}`);
 
     if (normalizedVehicleInterest) {
       globalThis.location.assign(
@@ -284,14 +293,23 @@ function LoginPage() {
               </div>
 
               <div>
-                <Label htmlFor="city">Ciudad</Label>
-                <Input
+                <Label htmlFor="city">Ciudad *</Label>
+                <select
                   id="city"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="Ej. Cochabamba"
-                  className="mt-1 bg-secondary/50"
-                />
+                  className="mt-1 w-full rounded-md bg-secondary/50 border border-border px-3 py-2 text-sm outline-none focus:border-brand-primary"
+                  required
+                >
+                  <option value="" disabled>
+                    Selecciona una ciudad
+                  </option>
+                  {validCities.map((cityOption) => (
+                    <option key={cityOption} value={cityOption}>
+                      {cityOption}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
