@@ -10,7 +10,12 @@ export const Route = createFileRoute("/_authenticated/usuarios")({
   component: UsuariosPage,
 });
 
-type ProfileRow = { id: string; full_name: string | null; phone: string | null; created_at: string };
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  created_at: string;
+};
 type RoleRow = { user_id: string; role: string };
 
 function UsuariosPage() {
@@ -26,7 +31,7 @@ function UsuariosPage() {
   const [creating, setCreating] = useState(false);
   const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
 
-  const createUser = async (e: React.FormEvent) => {
+  const createUser = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!isAdmin) {
@@ -37,13 +42,14 @@ function UsuariosPage() {
     setCreating(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("create-user", {
-        body: {
+      const { error } = await supabase.functions.invoke("create-user", {
+        body: JSON.stringify({
           email: newEmail,
           password: newPassword,
           fullName: newFullName,
           role: newRole,
-        },
+        }),
+        headers: { "Content-Type": "application/json" },
       });
 
       if (error) throw error;
@@ -86,9 +92,17 @@ function UsuariosPage() {
   const changeRole = async (userId: string, newRole: string) => {
     // remove existing roles for this user
     const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
-    if (delErr) { toast.error(delErr.message); return; }
-    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole as never });
-    if (error) { toast.error(error.message); return; }
+    if (delErr) {
+      toast.error(delErr.message);
+      return;
+    }
+    const { error } = await supabase
+      .from("user_roles")
+      .insert({ user_id: userId, role: newRole as never });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Rol actualizado");
     qc.invalidateQueries({ queryKey: ["roles"] });
   };
@@ -98,9 +112,7 @@ function UsuariosPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Usuarios y roles</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gestión del equipo interno
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Gestión del equipo interno</p>
         </div>
 
         {isAdmin && (
@@ -124,9 +136,15 @@ function UsuariosPage() {
         <table className="w-full text-left">
           <thead>
             <tr className="bg-secondary/30">
-              <th className="px-6 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Usuario</th>
-              <th className="px-6 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Rol actual</th>
-              <th className="px-6 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Cambiar rol</th>
+              <th className="px-6 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Usuario
+              </th>
+              <th className="px-6 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Rol actual
+              </th>
+              <th className="px-6 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                Cambiar rol
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/30">
@@ -150,7 +168,11 @@ function UsuariosPage() {
                         onChange={(e) => changeRole(p.id, e.target.value)}
                         className="px-3 py-1.5 rounded-md bg-secondary/50 border border-border text-sm"
                       >
-                        {Object.entries(roleLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        {Object.entries(roleLabels).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v}
+                          </option>
+                        ))}
                       </select>
                     ) : (
                       <span className="text-xs text-muted-foreground">—</span>
@@ -165,9 +187,11 @@ function UsuariosPage() {
 
       {isAdmin && isCreateUserModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-          <div
+          <button
+            type="button"
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setIsCreateUserModalOpen(false)}
+            aria-label="Cerrar modal"
           />
 
           <form

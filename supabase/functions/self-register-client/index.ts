@@ -5,9 +5,18 @@ type RegisterClientPayload = {
   phone: string;
   email: string;
   password: string;
-  city?: string | null;
+  city: string;
   vehicle_interest?: string | null;
 };
+
+const allowedCities = [
+  "Cochabamba",
+  "La Paz",
+  "Santa Cruz",
+  "El Alto",
+  "Yacuiba",
+  "Oruro",
+] as const;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +36,7 @@ function jsonResponse(body: unknown, status = 200) {
 function normalizeOptionalText(value?: string | null): string | null {
   const normalized = value?.trim();
 
-  return normalized ? normalized : null;
+  return normalized || null;
 }
 
 function validatePayload(payload: RegisterClientPayload): string | null {
@@ -35,7 +44,7 @@ function validatePayload(payload: RegisterClientPayload): string | null {
     return "El nombre completo es obligatorio";
   }
 
-  if (!payload.email || !payload.email.includes("@")) {
+  if (!payload.email?.includes("@")) {
     return "El correo es obligatorio y debe ser válido";
   }
 
@@ -47,7 +56,208 @@ function validatePayload(payload: RegisterClientPayload): string | null {
     return "La contraseña debe tener al menos 6 caracteres";
   }
 
+  if (!payload.city || !allowedCities.includes(payload.city as typeof allowedCities[number])) {
+    return "La ciudad es obligatoria y debe ser una de las opciones válidas";
+  }
+
   return null;
+}
+
+function normalizeAdvisorName(userMetadata: any, email: string | null): string {
+  if (userMetadata?.full_name?.trim()) {
+    return String(userMetadata.full_name).trim();
+  }
+
+  return email || "Asesor";
+}
+
+type AdvisorStats = {
+  id: string;
+  clientsCount: number;
+  locationMatches: number;
+  city: string | null;
+  full_name: string | null;
+};
+
+function createAdvisorStats(advisorIds: string[]) {
+  return new Map(
+    advisorIds.map((advisorId) => [
+      advisorId,
+      {
+        id: advisorId,
+        clientsCount: 0,
+        locationMatches: 0,
+        city: null,
+        full_name: null,
+      },
+    ] as const),
+  );
+}
+
+function sortAdvisorIdsByLoad(advisorStats: Map<string, AdvisorStats>, advisorIds: string[]) {
+  return [...advisorIds].sort((a, b) => {
+    const statA = advisorStats.get(a);
+    const statB = advisorStats.get(b);
+
+    if (!statA || !statB) {
+      return 0;
+    }
+
+    if (statA.clientsCount !== statB.clientsCount) {
+      return statA.clientsCount - statB.clientsCount;
+    }
+
+    return a.localeCompare(b);
+  });
+}
+
+function countAdvisorClients(
+  clients: Array<{ assigned_to: string | null } | null> | null | undefined,
+  advisorStats: Map<string, AdvisorStats>,
+) {
+  for (const client of clients ?? []) {
+    const assignedTo = client?.assigned_to;
+
+    if (!assignedTo || !advisorStats.has(assignedTo)) {
+      continue;
+    }
+
+    const stats = advisorStats.get(assignedTo);
+    if (!stats) continue;
+
+    stats.clientsCount += 1;
+  }
+}
+
+function applyAdvisorProfiles(
+  advisorProfiles: Array<{ id: string | null; full_name: string | null; city?: string | null } | null> | null | undefined,
+  advisorStats: Map<string, AdvisorStats>,
+  normalizedCity: string | null,
+) {
+  for (const advisorProfile of advisorProfiles ?? []) {
+    const advisorId = advisorProfile?.id;
+    if (!advisorId) continue;
+
+    const stats = advisorStats.get(advisorId);
+    if (!stats) continue;
+
+    const advisorCity = advisorProfile.city?.trim().toLowerCase() || null;
+    stats.city = advisorCity;
+    if (normalizedCity && advisorCity === normalizedCity) {
+      stats.locationMatches = 1;
+    }
+    stats.full_name = advisorProfile.full_name?.trim() || null;
+  }
+}
+
+function chooseAdvisorIds(
+  advisorStats: Map<string, AdvisorStats>,
+  advisorIds: string[],
+) {
+  const candidateAdvisorIds = [...advisorStats.values()]
+    .filter((stats) => stats.locationMatches > 0)
+    .map((stats) => stats.id);
+
+  const chosenAdvisorIds =
+    candidateAdvisorIds.length > 0 ? candidateAdvisorIds : advisorIds;
+
+  return sortAdvisorIdsByLoad(advisorStats, chosenAdvisorIds);
+}
+
+async function selectBestAdvisor(
+  adminClient: ReturnType<typeof createClient>,
+  clientCity?: string | null,
+) {
+  const { data: advisorRoles, error: advisorRolesError } = await adminClient
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "asesor");
+
+  if (advisorRolesError || !advisorRoles?.length) {
+    console.error("Error obteniendo roles de asesor:", advisorRolesError);
+    return null;
+  }
+
+  const advisorIds = advisorRoles
+    .map((item) => item.user_id)
+    .filter((advisorId): advisorId is string => Boolean(advisorId));
+
+  if (!advisorIds.length) {
+    return null;
+  }
+
+  const { data: clients, error: clientsError } = await adminClient
+    .from("clients")
+    .select("assigned_to")
+    .in("assigned_to", advisorIds);
+
+  if (clientsError) {
+    console.error("Error obteniendo clientes para asignación de asesor:", clientsError);
+  }
+
+  const advisorStats = createAdvisorStats(advisorIds);
+  countAdvisorClients(clients, advisorStats);
+
+  let advisorProfiles: Array<{ id: string | null; full_name: string | null; city?: string | null }> = [];
+  const { data: advisorProfilesData, error: advisorProfilesError } = await adminClient
+    .from("profiles")
+    .select("id, full_name, city")
+    .in("id", advisorIds);
+
+  if (advisorProfilesError) {
+    console.error("Error obteniendo perfiles de asesores:", advisorProfilesError);
+  } else {
+    advisorProfiles = advisorProfilesData ?? [];
+  }
+
+  const { data: advisorAuthUsers, error: advisorAuthUsersError } = await adminClient
+    .from("auth.users")
+    .select("id, user_metadata")
+    .in("id", advisorIds);
+
+  if (advisorAuthUsersError) {
+    console.error("Error obteniendo usuarios auth de asesores:", advisorAuthUsersError);
+  }
+
+  const advisorAuthUsersById = new Map(
+    (advisorAuthUsers ?? []).map((user) => [user.id, user] as const),
+  );
+
+  advisorProfiles = advisorIds.map((advisorId) => {
+    const profile = advisorProfiles.find((item) => item?.id === advisorId) ?? null;
+    const authUser = advisorAuthUsersById.get(advisorId);
+    const authCity = authUser?.user_metadata?.city;
+    const authFullName = authUser?.user_metadata?.full_name;
+
+    return {
+      id: advisorId,
+      full_name:
+        profile?.full_name?.trim() ||
+        (typeof authFullName === "string" ? authFullName.trim() : null) ||
+        null,
+      city:
+        profile?.city?.trim() ||
+        (typeof authCity === "string" ? authCity.trim() : null) ||
+        null,
+    };
+  });
+
+  const normalizedCity = clientCity?.trim().toLowerCase() || null;
+  applyAdvisorProfiles(advisorProfiles, advisorStats, normalizedCity);
+
+  const chosenAdvisorIds = chooseAdvisorIds(advisorStats, advisorIds);
+  const selectedAdvisorId = chosenAdvisorIds[0];
+  const selectedAdvisorStats = advisorStats.get(selectedAdvisorId);
+
+  if (!selectedAdvisorStats) {
+    return null;
+  }
+
+  return {
+    id: selectedAdvisorStats.id,
+    email: null,
+    full_name: selectedAdvisorStats.full_name || "Asesor",
+  };
 }
 
 Deno.serve(async (req) => {
@@ -71,7 +281,17 @@ Deno.serve(async (req) => {
     }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
-    const payload = (await req.json()) as RegisterClientPayload;
+
+    let payload: RegisterClientPayload;
+    try {
+      payload = (await req.json()) as RegisterClientPayload;
+    } catch (parseError) {
+      console.error("Invalid JSON payload:", parseError);
+      return jsonResponse(
+        { error: "JSON inválido en el cuerpo de la solicitud" },
+        400,
+      );
+    }
 
     const validationError = validatePayload(payload);
 
@@ -83,7 +303,7 @@ Deno.serve(async (req) => {
     const phone = payload.phone.trim();
     const email = payload.email.trim().toLowerCase();
     const vehicleInterest = normalizeOptionalText(payload.vehicle_interest);
-    const city = normalizeOptionalText(payload.city);
+    const city = payload.city.trim();
 
     const { data: existingClient } = await adminClient
       .from("clients")
@@ -98,6 +318,30 @@ Deno.serve(async (req) => {
       );
     }
 
+    const { data: existingAuthUsers, error: existingAuthUsersError } =
+      await adminClient.auth.admin.listUsers({
+        query: email,
+        perPage: 1,
+      });
+
+    if (existingAuthUsersError) {
+      return jsonResponse(
+        { error: existingAuthUsersError.message },
+        400,
+      );
+    }
+
+    if (
+      (existingAuthUsers?.users ?? []).some(
+        (user) => user.email?.toLowerCase() === email,
+      )
+    ) {
+      return jsonResponse(
+        { error: "Ya existe un cliente registrado con ese correo" },
+        409,
+      );
+    }
+
     const { data: createdUser, error: createUserError } =
       await adminClient.auth.admin.createUser({
         email,
@@ -106,6 +350,7 @@ Deno.serve(async (req) => {
         user_metadata: {
           full_name: fullName,
           phone,
+          city: city,
           role: "cliente",
         },
       });
@@ -142,6 +387,8 @@ Deno.serve(async (req) => {
       );
     }
 
+    const selectedAdvisor = await selectBestAdvisor(adminClient, city);
+
     const { data: createdClient, error: createClientError } = await adminClient
       .from("clients")
       .insert({
@@ -153,6 +400,7 @@ Deno.serve(async (req) => {
         vehicle_interest: vehicleInterest,
         status: vehicleInterest ? "interesado" : "nuevo",
         priority: vehicleInterest ? "media" : "baja",
+        assigned_to: selectedAdvisor?.id ?? null,
         notes: vehicleInterest
           ? `Cliente auto-registrado con interés en: ${vehicleInterest}`
           : "Cliente auto-registrado desde el formulario público.",
@@ -177,6 +425,7 @@ Deno.serve(async (req) => {
     return jsonResponse({
       userId: authUserId,
       client: createdClient,
+      assignedAdvisor: selectedAdvisor ?? null,
       hasVehicleInterest: Boolean(vehicleInterest),
       message: "Cliente registrado correctamente",
     });

@@ -43,7 +43,7 @@ function NewClientPage() {
 
   const [saving, setSaving] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const parsed = schema.safeParse(form);
@@ -57,7 +57,7 @@ function NewClientPage() {
 
     try {
       const { data, error } = await supabase.functions.invoke("create-client", {
-        body: {
+        body: JSON.stringify({
           full_name: form.full_name,
           phone: form.phone,
           email: form.email,
@@ -66,7 +66,8 @@ function NewClientPage() {
           status: form.status,
           priority: form.priority,
           notes: form.notes || null,
-        },
+        }),
+        headers: { "Content-Type": "application/json" },
       });
 
       if (error) {
@@ -88,9 +89,7 @@ function NewClientPage() {
         },
       });
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "No se pudo crear el cliente",
-      );
+      toast.error(err instanceof Error ? err.message : "No se pudo crear el cliente");
     } finally {
       setSaving(false);
     }
@@ -107,19 +106,14 @@ function NewClientPage() {
       </Link>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">
-          Nuevo cliente
-        </h1>
+        <h1 className="text-2xl font-semibold text-foreground">Nuevo cliente</h1>
         <p className="text-muted-foreground">
-          Registra un nuevo contacto en el CRM. Se creará también su usuario de
-          acceso y se enviarán sus credenciales por correo.
+          Registra un nuevo contacto en el CRM. Se creará también su usuario de acceso y se enviarán
+          sus credenciales por correo.
         </p>
       </div>
 
-      <form
-        onSubmit={submit}
-        className="space-y-5 rounded-xl border border-border bg-card p-6"
-      >
+      <form onSubmit={submit} className="space-y-5 rounded-xl border border-border bg-card p-6">
         <div>
           <Label htmlFor="full_name">Nombre completo *</Label>
           <Input
@@ -153,8 +147,7 @@ function NewClientPage() {
             required
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Se usará para generar la contraseña inicial con formato
-            nombre.telefono.
+            Se usará para generar la contraseña inicial con formato nombre.telefono.
           </p>
         </div>
 
@@ -277,11 +270,7 @@ function NewClientPage() {
             {saving ? "Creando cliente…" : "Crear cliente"}
           </Button>
 
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigate({ to: "/clientes" })}
-          >
+          <Button type="button" variant="ghost" onClick={() => navigate({ to: "/clientes" })}>
             Cancelar
           </Button>
         </div>
