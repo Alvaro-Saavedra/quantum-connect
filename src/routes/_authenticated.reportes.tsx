@@ -64,6 +64,18 @@ function ReportesPage() {
     URL.revokeObjectURL(url);
   };
 
+  // Datos mockeados de puntos de ingreso
+  const entryPoints = [
+    { name: "WhatsApp", value: 45, color: "oklch(0.65 0.22 145)" },
+    { name: "Facebook", value: 30, color: "oklch(0.65 0.2 252)" },
+    { name: "Instagram", value: 15, color: "oklch(0.75 0.15 200)" },
+    { name: "TikTok", value: 5, color: "oklch(0.7 0.18 60)" },
+    { name: "Página Web", value: 3, color: "oklch(0.65 0.22 320)" },
+    { name: "Otros", value: 2, color: "oklch(0.6 0.2 25)" },
+  ];
+
+  const totalEntries = entryPoints.reduce((s, e) => s + e.value, 0);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -104,15 +116,79 @@ function ReportesPage() {
             </Pie>
             <Tooltip
               contentStyle={{
-                background: "oklch(0.205 0.005 285)",
-                border: "1px solid oklch(0.3 0.005 285 / 0.5)",
+                background: "#fff", // Fondo claro
+                border: "1px solid #e5e7eb", // Borde gris claro
                 borderRadius: "8px",
                 fontSize: "12px",
+                color: "#22223b", // Texto oscuro
               }}
             />
-            <Legend wrapperStyle={{ fontSize: "12px" }} />
+            <Legend
+              verticalAlign="bottom"
+              height={36}
+              wrapperStyle={{
+                fontSize: "12px",
+                color: "oklch(0.9 0.005 285)",
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* Puntos de Ingreso */}
+      <div>
+        <h2 className="text-lg font-semibold tracking-tight mb-4">Puntos de Ingreso</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="glass-card p-6 rounded-xl">
+            <h3 className="text-sm font-medium mb-4">Distribución por canal</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={entryPoints}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={100}
+                  innerRadius={60}
+                >
+                  {entryPoints.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "#fff", // Fondo claro
+                    border: "1px solid #e5e7eb", // Borde gris claro
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    color: "#22223b", // Texto oscuro
+                  }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  wrapperStyle={{
+                    fontSize: "12px",
+                    color: "oklch(0.9 0.005 285)",
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {entryPoints.map((point) => (
+              <div key={point.name} className="glass-card p-4 rounded-xl">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                  {point.name}
+                </p>
+                <p className="text-2xl font-semibold mt-1">{point.value}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {totalEntries > 0 ? Math.round((point.value / totalEntries) * 100) : 0}% del total
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
