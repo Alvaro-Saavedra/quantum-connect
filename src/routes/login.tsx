@@ -17,16 +17,16 @@ export const Route = createFileRoute("/login")({
 const schema = z.object({
   email: z.string().email("Email inválido").max(255),
   password: z.string().min(6, "Mínimo 6 caracteres").max(100),
-  fullName: z.string().min(2).max(120).optional(),
+  // fullName: z.string().min(2).max(120).optional(),
 });
 
 function LoginPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  // const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
+  // const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -35,29 +35,18 @@ function LoginPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = schema.safeParse({ email, password, fullName: mode === "signup" ? fullName : undefined });
+    const parsed = schema.safeParse({ email, password });
     if (!parsed.success) {
       toast.error(parsed.error.errors[0].message);
       return;
     }
     setLoading(true);
     try {
-      if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("Bienvenido de vuelta");
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName },
-            emailRedirectTo: window.location.origin,
-          },
-        });
-        if (error) throw error;
-        toast.success("Cuenta creada. Iniciando sesión…");
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success("Bienvenido de vuelta");
+
+      navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Error de autenticación");
     } finally {
@@ -94,10 +83,10 @@ function LoginPage() {
             </div>
           </Link>
           <h1 className="text-2xl font-semibold text-foreground">
-            {mode === "login" ? "Acceso al sistema" : "Crear cuenta interna"}
+            Acceso al sistema
           </h1>
           <p className="text-sm text-muted-foreground mt-2">
-            {mode === "login" ? "Ingresa con tu cuenta del equipo comercial" : "Regístrate como nuevo miembro del equipo"}
+            Ingresa con tu cuenta del equipo comercial
           </p>
         </div>
 
@@ -125,7 +114,7 @@ function LoginPage() {
           </div>
 
           <form onSubmit={submit} className="space-y-4">
-            {mode === "signup" && (
+            {/* {mode === "signup" && (
               <div>
                 <Label htmlFor="fullName">Nombre completo</Label>
                 <Input
@@ -138,7 +127,7 @@ function LoginPage() {
                   required
                 />
               </div>
-            )}
+            )} */}
             <div>
               <Label htmlFor="email">Correo corporativo</Label>
               <Input
@@ -170,11 +159,11 @@ function LoginPage() {
               className="w-full bg-brand-primary text-canvas hover:bg-brand-primary/90 font-medium"
               disabled={loading}
             >
-              {loading ? "Procesando…" : mode === "login" ? "Iniciar sesión" : "Crear cuenta"}
+              {loading ? "Procesando…" : "Iniciar sesión"}
             </Button>
           </form>
 
-          <div className="text-center text-xs text-muted-foreground">
+          {/* <div className="text-center text-xs text-muted-foreground">
             {mode === "login" ? "¿Aún no tienes cuenta?" : "¿Ya tienes cuenta?"}{" "}
             <button
               type="button"
@@ -183,7 +172,7 @@ function LoginPage() {
             >
               {mode === "login" ? "Regístrate" : "Inicia sesión"}
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
