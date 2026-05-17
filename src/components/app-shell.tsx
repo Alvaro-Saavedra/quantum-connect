@@ -116,6 +116,19 @@ export function AppShell() {
               <Button variant="ghost" size="icon" className="text-muted-foreground">
                 <Bell className="size-5" />
               </Button>
+              {user ? (
+                <Button
+                  variant="ghost"
+                  onClick={async () => {
+                    await signOut();
+                    navigate({ to: "/login" });
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="size-4" />
+                  <span className="hidden sm:inline">Cerrar sesión</span>
+                </Button>
+              ) : null}
               <Button
                 onClick={() => navigate({ to: "/clientes/nuevo" })}
                 className="bg-brand-primary text-canvas hover:bg-brand-primary/90 font-medium"
