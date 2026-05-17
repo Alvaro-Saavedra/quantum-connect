@@ -20,6 +20,8 @@ const schema = z.object({
   // fullName: z.string().min(2).max(120).optional(),
 });
 
+const CLIENT_CATALOG_URL = "http://localhost:8080/catalogo";
+
 function LoginPage() {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -30,7 +32,30 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (session) navigate({ to: "/dashboard" });
+    const redirectAuthenticatedUser = async () => {
+      if (!session?.user) return;
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id);
+
+      if (error) {
+        toast.error("No se pudo verificar el rol del usuario");
+        return;
+      }
+
+      const roles = (data ?? []).map((item) => item.role);
+
+      if (roles.includes("cliente")) {
+        window.location.assign(CLIENT_CATALOG_URL);
+        return;
+      }
+
+      navigate({ to: "/dashboard" });
+    };
+
+    redirectAuthenticatedUser();
   }, [session, navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -42,9 +67,36 @@ function LoginPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
       if (error) throw error;
+
+      const userId = data.user?.id;
+
+      if (!userId) {
+        throw new Error("No se pudo obtener el usuario autenticado");
+      }
+
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+
+      if (rolesError) {
+        throw rolesError;
+      }
+
+      const roles = (rolesData ?? []).map((item) => item.role);
+
       toast.success("Bienvenido de vuelta");
+
+      if (roles.includes("cliente")) {
+        window.location.assign(CLIENT_CATALOG_URL);
+        return;
+      }
 
       navigate({ to: "/dashboard" });
     } catch (err) {

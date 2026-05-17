@@ -17,8 +17,10 @@ export const Route = createFileRoute("/_authenticated")({
   },
 });
 
+const CLIENT_CATALOG_URL = "http://localhost:8080/catalogo";
+
 function AuthenticatedLayout() {
-  const { session, loading } = useAuth();
+  const { session, roles, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,6 +28,12 @@ function AuthenticatedLayout() {
       navigate({ to: "/login" });
     }
   }, [loading, session, navigate]);
+
+  useEffect(() => {
+    if (!loading && session && roles.includes("cliente")) {
+      window.location.assign(CLIENT_CATALOG_URL);
+    }
+  }, [loading, session, roles]);
 
   if (loading || !session) {
     return (
